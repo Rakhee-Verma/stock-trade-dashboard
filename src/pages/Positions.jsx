@@ -8,6 +8,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { useParams } from "react-router-dom";
+import getLocalData from "../helper/getLocalData";
 export const Positions = ({
   onTrade,
   latestPrice,
@@ -16,6 +17,7 @@ export const Positions = ({
   setOpen,
   availableQty,
   trades,
+  TotalBalance,
 }) => {
   const theme = useTheme();
   const [totalValue, setTotalValue] = useState(0);
@@ -48,7 +50,12 @@ export const Positions = ({
       setQuantity(val);
     }
   };
-
+  const userDetail = getLocalData("get", "userDetails");
+  // JSON.parse(localStorage.getItem("userDetails")||'{}');
+  console.log(userDetail, "userDetail");
+  const balance = (userDetail?.walletBalance || 0) - totalValue;
+  const updatedUserDetails={...userDetail,walletBalance:balance}
+  // localStorage.setItem("userDetails",JSON.stringify(updatedUserDetails))
   return (
     <>
       <Box
@@ -80,7 +87,7 @@ export const Positions = ({
           onChange={handleSearchChange}
           sx={{ mb: 2 }}
         />
-
+        <Typography>Available balance: ${(userDetail?.walletBalance ?? 0)}</Typography>
         <Typography>Total Value: ${totalValue.toFixed(2)}</Typography>
         <Typography sx={{ fontSize: "0.8rem" }}>
           Available to shell:{availableQty}

@@ -15,13 +15,15 @@ import {
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Chart from "react-apexcharts";
 import { Positions } from "./Positions";
+import getLocalData, { getTimeFrame } from "../helper/getLocalData";
 
 export const Charts = () => {
   const theme = useTheme();
   const { symbol } = useParams();
+  const navigate = useNavigate();
   const [timeFrame, setTimeFrame] = useState("1M");
   const [filteredData, setFilteredData] = useState([]);
   const [latestPrice, setLatestPrice] = useState(null);
@@ -30,34 +32,11 @@ export const Charts = () => {
   const [quantity, setQuantity] = useState("");
   const [availableQty, setAvailableQty] = useState(0);
   const [trades, setTrades] = useState([]);
+  const [totalPrice, setTotalPrice] = useState(null);
   const fetchChart = async ({ queryKey }) => {
     const [, symbol, timeFrame] = queryKey;
 
-    // Adjust interval and outputsize by timeframe
-    let interval = "5min";
-    let outputsize = 30;
-
-    switch (timeFrame) {
-      case "1D":
-        interval = "5min";
-        outputsize = 80; // About 1 day
-        break;
-      case "1W":
-        interval = "1h";
-        outputsize = 120; // About 1 week
-        break;
-      case "1M":
-        interval = "1day";
-        outputsize = 30;
-        break;
-      case "3M":
-        interval = "1week";
-        outputsize = 12;
-        break;
-      default:
-        interval = "1day";
-        outputsize = 30;
-    }
+    const { interval, outputsize } = getTimeFrame(timeFrame);
 
     const api = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&outputsize=${outputsize}&apikey=4f61a92dc43f4841b0c2f0a4599f01fa`;
 
@@ -89,20 +68,17 @@ export const Charts = () => {
       });
     }
   }, [data]);
-  console.log(latestPrice, "latestPrice>>>");
   useEffect(() => {
-    const savedTrade = JSON.parse(localStorage.getItem("tradeInfo")) ?? [];
-    const matched = savedTrade.filter((t) => t.symbol === symbol);
+    const savedTrade = getLocalData("get", "tradeInfo");
+    const matched = savedTrade?.filter((t) => t.symbol === symbol);
     const totalBuy = matched
       .filter((t) => t.type === "BUY")
       .reduce((sum, item) => sum + Number(item.quantity), 0);
-    console.log(totalBuy, "totalBuy");
 
     const totalSell = matched
       .filter((t) => t.type === "SELL")
       .reduce((sum, item) => sum + Number(item.quantity), 0);
     const totalQty = totalBuy - totalSell;
-    console.log(totalSell, "totalSell");
     setAvailableQty(totalQty);
     setTrades(matched);
   }, [symbol, open]);
@@ -110,13 +86,24 @@ export const Charts = () => {
   const handleBuyTrade = (quantity, type) => {
     if (!latestPrice || !quantity) return;
     const qty = Number(quantity);
-    // const finalQty = type === "SELL" ? -Math.abs(qty) : Math.abs(qty);
     const totalValue = latestPrice.price * qty;
+    setTotalPrice(totalValue);
     if (type === "SELL" && qty > availableQty) {
       setTradeInfo({
         error: "Sell quantity exceeds available stock.",
       });
       setOpen(true);
+      return;
+    }
+    const userDetails = getLocalData("get", "userDetails");
+    const walletBalance = userDetails?.walletBalance;
+    if (walletBalance < totalValue) {
+      setTradeInfo({
+        lowBalance: true,
+        msg: "You don’t have enough balance to buy this stock. Please add money to your wallet.",
+      });
+      setOpen(true);
+
       return;
     }
     setTradeInfo({
@@ -139,14 +126,17 @@ export const Charts = () => {
 
   const handleConfirmButton = () => {
     if (tradeInfo) {
-      const existingTrades =
-        JSON.parse(localStorage.getItem("tradeInfo")) || [];
+      const existingTrades = getLocalData("get", "tradeInfo");
+      const userDetails = getLocalData("get", "userDetails");
+      const totalBal = userDetails.walletBalance;
+      userDetails.walletBalance = totalBal - totalPrice;
+      getLocalData("set", "userDetails", userDetails);
 
       if (existingTrades && Array.isArray(existingTrades)) {
         const updatedTrades = [...existingTrades, tradeInfo];
-        localStorage.setItem("tradeInfo", JSON.stringify(updatedTrades));
+        getLocalData("set", "tradeInfo", updatedTrades);
       } else {
-        localStorage.setItem("tradeInfo", JSON.stringify([tradeInfo]));
+        getLocalData("set", "tradeInfo", tradeInfo);
       }
     }
     setQuantity("");
@@ -204,6 +194,9 @@ export const Charts = () => {
     [filteredData]
   );
   console.log("filteredData::::", filteredData);
+  const handleAddMoneyButton = () => {
+    navigate("/fundingAccount");
+  };
   if (isLoading) {
     return (
       <Box textAlign="center" mt={10}>
@@ -278,6 +271,7 @@ export const Charts = () => {
             setOpen={setOpen}
             availableQty={availableQty}
             trades={trades}
+            // TotalBalance={balance}
           />
         </Box>
       </Box>
@@ -315,7 +309,27 @@ export const Charts = () => {
                   : "2px 0 15px rgba(0,0,0,0.1)",
             }}
           >
-            {tradeInfo?.error ? (
+            {tradeInfo?.lowBalance ? (
+              <>
+                <Typography>{tradeInfo.msg}</Typography>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Button
+                    varient="outlined"
+                    size="small"
+                    onClick={handleCloseButton}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleAddMoneyButton}
+                  >
+                    Add Money
+                  </Button>
+                </Box>
+              </>
+            ) : tradeInfo?.error ? (
               <Typography color="error">{tradeInfo.error}</Typography>
             ) : (
               <Box>
