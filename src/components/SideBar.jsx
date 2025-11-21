@@ -9,6 +9,7 @@ export const SideBar = () => {
     { text: "Dashboard", path: "/" },
     { text: "Stocks", path: "/stockCards" },
     { text: "Positions", path: "/tradeInfoTable" },
+    { text: "Funding Account", path: "/fundingAccount" },
   ];
 
   return (

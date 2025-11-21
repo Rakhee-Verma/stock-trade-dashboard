@@ -6,6 +6,7 @@ import { Charts } from "./pages/Charts";
 import { TradeInfoTable } from "./pages/TradeInfoTable";
 import MaintenancePage from "./pages/MaintenancePage "
 import { Dashboard } from "./pages/Deshboard";
+import { FundingAccount } from "./pages/FundingAccount";
 
 
 function App({ toggleTheme, mode }) {
@@ -16,6 +17,7 @@ function App({ toggleTheme, mode }) {
         <Route path="/charts/:symbol" element={<Charts />} />
         <Route path="/" element={<Dashboard />} />
         <Route path="/tradeInfoTable" element={<TradeInfoTable />} />
+        <Route path="/fundingAccount" element={<FundingAccount />} />
         <Route path="*" element={<MaintenancePage />} />
       </Routes>
     </Layout>
