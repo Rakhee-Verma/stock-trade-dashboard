@@ -28,6 +28,8 @@ const GenericTable = ({
     setTableRows(rows);
   }, [rows]);
 
+  console.log("tableRows{}{}", tableRows);
+
   // sorting logic
   const handleSorting = (key) => {
     const direction =
@@ -45,6 +47,8 @@ const GenericTable = ({
     setSorted({ key, direction });
     setTableRows(sortedData);
   };
+
+  console.log("columns----", columns);
 
   return (
     <Box
@@ -77,26 +81,29 @@ const GenericTable = ({
             }}
           >
             <TableRow>
-              {columns.map((col) => (
-                <TableCell
-                  key={col.key}
-                  onClick={() => col.sortable && handleSorting(col.key)}
-                  sx={{ cursor: col.sortable ? "pointer" : "default" }}
-                >
-                  {col.label}
+              {columns?.map((col) => {
+                console.log(col,"col:::")
+                return (
+                  <TableCell
+                    key={col.key}
+                    onClick={() => col.sortable && handleSorting(col.key)}
+                    sx={{ cursor: col.sortable ? "pointer" : "default" }}
+                  >
+                    {col.label}
 
-                  {col.sortable && sorted.key !== col.key && (
-                    <ImportExportIcon sx={{ fontSize: "0.9rem", ml: 1 }} />
-                  )}
+                    {col.sortable && sorted.key !== col.key && (
+                      <ImportExportIcon sx={{ fontSize: "0.9rem", ml: 1 }} />
+                    )}
 
-                  {sorted.key === col.key &&
-                    (sorted.direction === "asc" ? (
-                      <StraightIcon sx={{ fontSize: "0.9rem", ml: 1 }} />
-                    ) : (
-                      <SouthIcon sx={{ fontSize: "0.8rem", ml: 1 }} />
-                    ))}
-                </TableCell>
-              ))}
+                    {sorted.key === col.key &&
+                      (sorted.direction === "asc" ? (
+                        <StraightIcon sx={{ fontSize: "0.9rem", ml: 1 }} />
+                      ) : (
+                        <SouthIcon sx={{ fontSize: "0.8rem", ml: 1 }} />
+                      ))}
+                  </TableCell>
+                );
+              })}
 
               <TableCell>Action</TableCell>
             </TableRow>
@@ -111,6 +118,8 @@ const GenericTable = ({
               >
                 {columns.map((col) => (
                   <TableCell key={col.key}>
+                    {row?.type === "SELL" && col.key === "quantity" ? "-" : ""}
+                    {row?.type==="SELL"&&col.key==="totalValue"?'-':''}
                     {col.format ? col.format(row[col.key]) : row[col.key]}
                   </TableCell>
                 ))}

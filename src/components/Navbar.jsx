@@ -12,13 +12,17 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import NightlightRoundIcon from "@mui/icons-material/NightlightRound";
 import SearchIcon from "@mui/icons-material/Search";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { filterStock } from "../redux/stockSlice";
-import { useCallback, useMemo } from "react";
+import {useEffect, useMemo, useState } from "react";
 export const Navbar = ({ toggleTheme, mode }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const location=useLocation();
+  console.log(location,"location");
+  const [searchValue,setSearchValue]=useState("")
+  
   const theme = useTheme();
   const handleLogo = () => {
     navigate("/");
@@ -38,7 +42,11 @@ export const Navbar = ({ toggleTheme, mode }) => {
   const handleSearchChange = (e) => {
     const value = e.target.value;
     debouncedSearch(value);
+    setSearchValue(value)
   };
+  useEffect(()=>{
+    setSearchValue("")
+  },[location.pathname])
   
   return (
     <>
@@ -63,6 +71,7 @@ export const Navbar = ({ toggleTheme, mode }) => {
             variant="outlined"
             placeholder="Search..."
             size="small"
+            value={searchValue}
             onChange={handleSearchChange}
             sx={{
               width: { sm: 220, md: 300 },
@@ -86,10 +95,7 @@ export const Navbar = ({ toggleTheme, mode }) => {
             <IconButton color="inherit" onClick={toggleTheme}>
               {mode === "light" ? <NightlightRoundIcon /> : <LightModeIcon />}
             </IconButton>
-            <IconButton color="inherit">
-              <AccountCircleIcon />
-            </IconButton>
-          </Box>
+         </Box>
         </Toolbar>
       </AppBar>
     </>
