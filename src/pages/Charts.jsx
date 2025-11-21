@@ -28,6 +28,8 @@ export const Charts = () => {
   const [tradeInfo, setTradeInfo] = useState(null);
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState("");
+  const [availableQty, setAvailableQty] = useState(0);
+  const [trades, setTrades] = useState([]);
   const fetchChart = async ({ queryKey }) => {
     const [, symbol, timeFrame] = queryKey;
 
@@ -88,21 +90,44 @@ export const Charts = () => {
     }
   }, [data]);
   console.log(latestPrice, "latestPrice>>>");
+  useEffect(() => {
+    const savedTrade = JSON.parse(localStorage.getItem("tradeInfo")) ?? [];
+    const matched = savedTrade.filter((t) => t.symbol === symbol);
+    const totalBuy = matched
+      .filter((t) => t.type === "BUY")
+      .reduce((sum, item) => sum + Number(item.quantity), 0);
+    console.log(totalBuy, "totalBuy");
+
+    const totalSell = matched
+      .filter((t) => t.type === "SELL")
+      .reduce((sum, item) => sum + Number(item.quantity), 0);
+    const totalQty = totalBuy - totalSell;
+    console.log(totalSell, "totalSell");
+    setAvailableQty(totalQty);
+    setTrades(matched);
+  }, [symbol, open]);
 
   const handleBuyTrade = (quantity, type) => {
     if (!latestPrice || !quantity) return;
     const qty = Number(quantity);
-    const finalQty = type === "SELL" ? -Math.abs(qty) : Math.abs(qty);
-    const totalValue = latestPrice.price * finalQty;
-
+    // const finalQty = type === "SELL" ? -Math.abs(qty) : Math.abs(qty);
+    const totalValue = latestPrice.price * qty;
+    if (type === "SELL" && qty > availableQty) {
+      setTradeInfo({
+        error: "Sell quantity exceeds available stock.",
+      });
+      setOpen(true);
+      return;
+    }
     setTradeInfo({
       symbol,
-      quantity: finalQty,
+      quantity: qty,
       price: latestPrice.price,
       totalValue,
       lastUpdated: latestPrice.time,
       status: "pending",
       createdAt: Date.now(),
+      type,
     });
 
     setOpen(true);
@@ -196,17 +221,13 @@ export const Charts = () => {
   }
   return (
     <>
-   
       <Box
         sx={{
           width: "100%",
           display: { lg: "flex", sm: "block" },
           justifyContent: "space-evenly",
-         
         }}
       >
-             
-
         <Box
           sx={{
             width: { lg: "60%", sm: "75%" },
@@ -217,6 +238,7 @@ export const Charts = () => {
               theme.palette.mode === "dark"
                 ? "2px 0 15px rgba(255, 255, 255, 0.3)"
                 : "2px 0 15px rgba(0,0,0,0.1)",
+            height: { lg: "80vh", md: "95vh" },
           }}
         >
           <Typography variant="h5" gutterBottom>
@@ -254,9 +276,12 @@ export const Charts = () => {
             onTrade={handleBuyTrade}
             setQuantity={setQuantity}
             setOpen={setOpen}
+            availableQty={availableQty}
+            trades={trades}
           />
         </Box>
       </Box>
+
       <Modal
         open={open}
         onClose={handleCloseButton}
@@ -272,9 +297,14 @@ export const Charts = () => {
           <Box
             sx={{
               position: "absolute",
-              top: {lg:"50%"},
-              left: {lg:"50%"},
-              transform: "translate(-50%, -50%)",
+              top: { lg: "50%", md: "50%", sm: "50%", xs: "50%" },
+              left: { lg: "50%", md: "50%", sm: "50%", xs: "50%" },
+              transform: {
+                lg: "translate(-50%, -50%)",
+                md: "translate(-50%, -50%)",
+                sm: "translate(-50%, -50%)",
+                xs: "translate(-50%, -50%)",
+              },
               width: 350,
               bgcolor: "background.paper",
               borderRadius: 2,
@@ -285,45 +315,61 @@ export const Charts = () => {
                   : "2px 0 15px rgba(0,0,0,0.1)",
             }}
           >
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-              {symbol} Stock Price
-            </Typography>
+            {tradeInfo?.error ? (
+              <Typography color="error">{tradeInfo.error}</Typography>
+            ) : (
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                  {symbol} Stock Price
+                </Typography>
 
-            <Typography sx={{ fontSize: "0.9rem", mb: 1 }}>
-              Latest Price: ${latestPrice?.price?.toFixed(2) || 0.0}
-            </Typography>
+                <Typography sx={{ fontSize: "0.9rem", mb: 1 }}>
+                  Latest Price: ${latestPrice?.price?.toFixed(2) || 0.0}
+                </Typography>
 
-            <Typography sx={{ fontSize: "0.9rem", mb: 1 }}>
-              Last Updated:{" "}
-              {latestPrice?.time
-                ? new Date(latestPrice.time).toLocaleString()
-                : "--"}
-            </Typography>
+                <Typography sx={{ fontSize: "0.9rem", mb: 1 }}>
+                  Last Updated:{" "}
+                  {latestPrice?.time
+                    ? new Date(latestPrice.time).toLocaleString()
+                    : "--"}
+                </Typography>
 
-            <Typography sx={{ fontSize: "0.9rem", mb: 1 }}>
-              Total Price: ${tradeInfo?.totalValue?.toFixed(2) || 0.0}
-            </Typography>
-            <Typography sx={{ fontSize: "0.9rem", mb: 2 }}>
-              Quantity: ${tradeInfo?.quantity || 0.0}
-            </Typography>
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}
-            >
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handleCloseButton}
-              >
-                Close
-              </Button>
-              <Button
-                variant="contained"
-                size="small"
-                onClick={handleConfirmButton}
-              >
-                Confirm
-              </Button>
-            </Box>
+                <Typography sx={{ fontSize: "0.9rem", mb: 1 }}>
+                  Total Price: ${" "}
+                  {`${tradeInfo?.type === "SELL" ? "-" : ""}${
+                    tradeInfo?.totalValue?.toFixed(2) || 0.0
+                  }`}
+                </Typography>
+                <Typography sx={{ fontSize: "0.9rem", mb: 2 }}>
+                  Quantity: ${" "}
+                  {`${tradeInfo?.type === "SELL" ? "-" : ""}${
+                    tradeInfo?.quantity || 0.0
+                  }`}
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 2,
+                  }}
+                >
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={handleCloseButton}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleConfirmButton}
+                  >
+                    Confirm
+                  </Button>
+                </Box>
+              </Box>
+            )}
           </Box>
         </Fade>
       </Modal>

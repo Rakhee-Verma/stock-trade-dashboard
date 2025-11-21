@@ -8,30 +8,23 @@ import {
   useTheme,
 } from "@mui/material";
 import { useParams } from "react-router-dom";
-
 export const Positions = ({
   onTrade,
   latestPrice,
   quantity,
   setQuantity,
   setOpen,
+  availableQty,
+  trades,
 }) => {
   const theme = useTheme();
   const [totalValue, setTotalValue] = useState(0);
-  // const [savedTrades, setSavedTrades] = useState([]);
-  const [trades, setTrades] = useState([]);
   const { symbol } = useParams();
   useEffect(() => {
     const price = latestPrice?.price || 0;
     const qty = parseFloat(quantity) || 0;
     setTotalValue(price * qty);
   }, [quantity, latestPrice]);
-  useEffect(() => {
-    const savedTrade = JSON.parse(localStorage.getItem("tradeInfo")) ?? [];
-    const matched = savedTrade.filter((t) => t.symbol === symbol);
-    setTrades(matched);
-  }, [symbol]);
-
   const handleBuyButton = () => {
     if (!quantity) return;
     onTrade(quantity, "BUY");
@@ -89,6 +82,9 @@ export const Positions = ({
         />
 
         <Typography>Total Value: ${totalValue.toFixed(2)}</Typography>
+        <Typography sx={{ fontSize: "0.8rem" }}>
+          Available to shell:{availableQty}
+        </Typography>
 
         <Stack
           direction="row"
@@ -103,30 +99,39 @@ export const Positions = ({
           </Button>
         </Stack>
       </Box>
-      <Box
-        sx={{
-          width: "300px",
-          p: 2,
-          borderRadius: 2,
-          backgroundColor:
-            theme.palette.mode === "dark"
-              ? theme.palette.background.paper
-              : "#fff",
-          boxShadow:
-            theme.palette.mode === "dark"
-              ? "2px 0 15px rgba(255, 255, 255, 0.3)"
-              : "2px 0 15px rgba(0,0,0,0.1)",
-          display: "flex",
-          flexDirection: "column",
-          my: 4,
-        }}
-      >
+      <Box>
         {trades?.length > 0 ? (
-          trades.map((trade, index) => (
-            <Box key={index} sx={{ width: "100%", mb: 2 }}>
+          trades?.reverse().map((trade, index) => (
+            <Box
+              key={index}
+              sx={{
+                width: "300px",
+                p: 2,
+                borderRadius: 2,
+                backgroundColor:
+                  trade.type === "SELL" ? "#fc4235ff" : "#00e676",
+                boxShadow:
+                  theme.palette.mode === "dark"
+                    ? "2px 0 15px rgba(255, 255, 255, 0.3)"
+                    : "2px 0 15px rgba(0,0,0,0.1)",
+                display: "flex",
+                flexDirection: "column",
+                my: 1,
+              }}
+            >
               <Typography>{trade.symbol} stock price</Typography>
-              <Typography>Quantity:{trade.quantity}</Typography>
-              <Typography>Total Price:{trade.totalValue}</Typography>
+              <Typography>
+                Quantity:
+                {`${trade?.type === "SELL" ? "-" : ""}${
+                  trade?.quantity || 0.0
+                }`}
+              </Typography>
+              <Typography>
+                Total Price:$
+                {`${
+                  trade?.type === "SELL" ? "-" : ""
+                }${trade?.totalValue?.toFixed(2)}`}
+              </Typography>
             </Box>
           ))
         ) : (

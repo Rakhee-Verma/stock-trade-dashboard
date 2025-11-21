@@ -1,33 +1,43 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import StraightIcon from "@mui/icons-material/Straight";
-import SouthIcon from "@mui/icons-material/South";
-import ImportExportIcon from "@mui/icons-material/ImportExport";
 import GenericTable from "../components/common/GenericTable";
 import { Box } from "@mui/material";
 
 export const TradeInfoTable = () => {
   const [tradeDetails, setTradeDetails] = useState([]);
-  // const [sorted, setSorted] = useState({ key: "", direction: "asc" });
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("tradeInfo")||'[]');
-       
+    const loadTrades = () => {
+      const stored = JSON.parse(localStorage.getItem("tradeInfo") || "[]");
 
-    console.log(stored, "storedstored");
+      console.log(stored, "storedstored");
 
-    const now = Date.now();
-    const updated = stored?.map((t) => {
-      if (t.status === "pending" && now - t.createdAt >= 10 * (1000*60)) {
-        return { ...t, status: "completed" };
-      }
-      return t;
-    });
-    localStorage.setItem("tradeInfo", JSON.stringify(updated));
-    setTradeDetails(updated);
+      const now = Date.now();
+      const updated = stored?.map((t) => {
+        if (t.status === "pending" && now - t.createdAt >= 2 * (1000 * 60)) {
+          return { ...t, status: "completed" };
+        }
+        return t;
+      });
+      localStorage.setItem("tradeInfo", JSON.stringify(updated));
+      setTradeDetails(updated);
+    };
+    loadTrades();
+    const intervalId = setInterval(() => {
+      loadTrades();
+    }, 60 * 1000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const navigate = useNavigate();
+
   console.log("tradeDetails:::", tradeDetails);
+  const handleRemoveButton = (e, symbol) => {
+    e.stopPropagation();
+    const updatedtrades = tradeDetails.filter((sym) => sym.symbol !== symbol);
+    localStorage.setItem("tradeInfo", JSON.stringify(updatedtrades));
+    setTradeDetails(updatedtrades);
+  };
 
   const columns = [
     { key: "symbol", label: "Symbol" },
@@ -58,24 +68,22 @@ export const TradeInfoTable = () => {
 
   return (
     <>
-    <Box sx={{pb:4}}>
-      <GenericTable
-        title="Pending"
-        columns={columns}
-        rows={pendingTrades}
-        onRowClick={(row) => navigate(`/charts/${row.symbol}`)}
-        // onRemove={handleRemoveButton}
-      />
+      <Box sx={{ pb: 4 }}>
+        <GenericTable
+          title="Pending"
+          columns={columns}
+          rows={pendingTrades}
+          onRowClick={(row) => navigate(`/charts/${row.symbol}`)}
+          onRemove={handleRemoveButton}
+        />
       </Box>
       <GenericTable
         title="Completed"
         columns={columns}
         rows={completedTrades}
         onRowClick={(row) => navigate(`/charts/${row.symbol}`)}
-        // onRemove={handleRemoveButton}
+        onRemove={handleRemoveButton}
       />
- 
     </>
-    
   );
 };
