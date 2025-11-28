@@ -9,7 +9,7 @@ export const SideBar = () => {
     { text: "Dashboard", path: "/" },
     { text: "Stocks", path: "/stockCards" },
     { text: "Positions", path: "/tradeInfoTable" },
-    { text: "Funding Account", path: "/fundingAccount" },
+    { text: "Funding", path: "/fundingAccount" },
   ];
 
   return (
@@ -40,7 +40,7 @@ export const SideBar = () => {
           const isActive = location.pathname === item.path;
           return (
             <ListItem
-              button
+              // button
               component={Link}
               to={item.path}
               key={item.text}

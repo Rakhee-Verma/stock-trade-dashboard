@@ -17,11 +17,9 @@ export const Positions = ({
   setOpen,
   availableQty,
   trades,
-  TotalBalance,
 }) => {
   const theme = useTheme();
   const [totalValue, setTotalValue] = useState(0);
-  const { symbol } = useParams();
   useEffect(() => {
     const price = latestPrice?.price || 0;
     const qty = parseFloat(quantity) || 0;
@@ -30,12 +28,8 @@ export const Positions = ({
   const handleBuyButton = () => {
     if (!quantity) return;
     onTrade(quantity, "BUY");
-    console.log(quantity, "quantity:::::");
-
     setOpen(true);
   };
-  console.log("trades:::>>>", trades);
-
   const handleSellButton = () => {
     if (!quantity) return;
     onTrade(quantity, "SELL");
@@ -51,11 +45,6 @@ export const Positions = ({
     }
   };
   const userDetail = getLocalData("get", "userDetails");
-  // JSON.parse(localStorage.getItem("userDetails")||'{}');
-  console.log(userDetail, "userDetail");
-  const balance = (userDetail?.walletBalance || 0) - totalValue;
-  const updatedUserDetails={...userDetail,walletBalance:balance}
-  // localStorage.setItem("userDetails",JSON.stringify(updatedUserDetails))
   return (
     <>
       <Box
@@ -87,7 +76,7 @@ export const Positions = ({
           onChange={handleSearchChange}
           sx={{ mb: 2 }}
         />
-        <Typography>Available balance: ${(userDetail?.walletBalance ?? 0)}</Typography>
+        <Typography>Available balance: ${Number(userDetail?.amount ?? 0).toFixed(2)}</Typography>
         <Typography>Total Value: ${totalValue.toFixed(2)}</Typography>
         <Typography sx={{ fontSize: "0.8rem" }}>
           Available to shell:{availableQty}
@@ -108,7 +97,7 @@ export const Positions = ({
       </Box>
       <Box>
         {trades?.length > 0 ? (
-          trades?.reverse().map((trade, index) => (
+           [...trades]?.reverse().map((trade, index) => (
             <Box
               key={index}
               sx={{

@@ -1,17 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Card,
-  CardContent,
   Typography,
   Box,
   Button,
   CircularProgress,
   useTheme,
-  Popper,
   Fade,
   Modal,
   Backdrop,
-  Pagination,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
@@ -25,7 +21,7 @@ export const Charts = () => {
   const { symbol } = useParams();
   const navigate = useNavigate();
   const [timeFrame, setTimeFrame] = useState("1M");
-  const [filteredData, setFilteredData] = useState([]);
+  // const [filteredData, setFilteredData] = useState([]);
   const [latestPrice, setLatestPrice] = useState(null);
   const [tradeInfo, setTradeInfo] = useState(null);
   const [open, setOpen] = useState(false);
@@ -61,7 +57,6 @@ export const Charts = () => {
 
   useEffect(() => {
     if (data) {
-      setFilteredData(data);
       setLatestPrice({
         price: data[data.length - 1].y,
         time: data[data.length - 1].x,
@@ -96,7 +91,15 @@ export const Charts = () => {
       return;
     }
     const userDetails = getLocalData("get", "userDetails");
-    const walletBalance = userDetails?.walletBalance;
+    const walletBalance = Number(userDetails?.amount||0);
+    if (walletBalance === 0) {
+      setTradeInfo({
+        lowBalance: true,
+        msg: "Your wallet balance is 0. Please add money to purchase stock.",
+      });
+      setOpen(true);
+      return;
+    }
     if (walletBalance < totalValue) {
       setTradeInfo({
         lowBalance: true,
@@ -120,6 +123,7 @@ export const Charts = () => {
     setOpen(true);
   };
 
+
   const handleCloseButton = () => {
     setOpen(!open);
   };
@@ -128,10 +132,16 @@ export const Charts = () => {
     if (tradeInfo) {
       const existingTrades = getLocalData("get", "tradeInfo");
       const userDetails = getLocalData("get", "userDetails");
-      const totalBal = userDetails.walletBalance;
-      userDetails.walletBalance = totalBal - totalPrice;
-      getLocalData("set", "userDetails", userDetails);
+      console.log(userDetails, "userDetail:::::");
 
+      const totalBal = userDetails.amount;
+      if (tradeInfo.type === "BUY") {
+        userDetails.amount = totalBal - totalPrice;
+      }
+      if (tradeInfo.type === "SELL") {
+        userDetails.amount = totalBal + totalPrice;
+      }
+      getLocalData("set", "userDetails", userDetails);
       if (existingTrades && Array.isArray(existingTrades)) {
         const updatedTrades = [...existingTrades, tradeInfo];
         getLocalData("set", "tradeInfo", updatedTrades);
@@ -152,11 +162,6 @@ export const Charts = () => {
         zoom: { enabled: true },
         toolbar: { show: true },
         foreColor: theme.palette.text.primary, // Dynamic text color
-      },
-      title: {
-        text: `${symbol} Stock Price`,
-        align: "left",
-        style: { color: theme.palette.text.primary },
       },
       xaxis: {
         type: "datetime",
@@ -188,12 +193,11 @@ export const Charts = () => {
     () => [
       {
         name: "Close Price",
-        data: filteredData,
+        data: data,
       },
     ],
-    [filteredData]
+    [data]
   );
-  console.log("filteredData::::", filteredData);
   const handleAddMoneyButton = () => {
     navigate("/fundingAccount");
   };
@@ -231,7 +235,7 @@ export const Charts = () => {
               theme.palette.mode === "dark"
                 ? "2px 0 15px rgba(255, 255, 255, 0.3)"
                 : "2px 0 15px rgba(0,0,0,0.1)",
-            height: { lg: "80vh", md: "95vh" },
+            height: { lg: "80vh", md: "90vh" },
           }}
         >
           <Typography variant="h5" gutterBottom>
@@ -271,7 +275,6 @@ export const Charts = () => {
             setOpen={setOpen}
             availableQty={availableQty}
             trades={trades}
-            // TotalBalance={balance}
           />
         </Box>
       </Box>
